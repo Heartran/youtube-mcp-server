@@ -16,6 +16,21 @@ def _default_date_range(days: int = 28) -> tuple[str, str]:
     return start.isoformat(), end.isoformat()
 
 
+def _resolve_ids(channel_id: str | None) -> str:
+    """Return the Analytics API ``ids`` value for the given channel_id.
+
+    Validates that channel_id matches the YouTube channel ID format (starts
+    with 'UC', exactly 24 characters). Raises ValueError on bad input.
+    """
+    if channel_id is None:
+        return "channel==MINE"
+    if not (channel_id.startswith("UC") and len(channel_id) == 24):
+        raise ValueError(
+            f"Invalid channel_id '{channel_id}': must start with 'UC' and be 24 characters long."
+        )
+    return f"channel=={channel_id}"
+
+
 def _run_analytics_query(
     metrics: str,
     dimensions: str = "",
@@ -24,6 +39,7 @@ def _run_analytics_query(
     filters: str | None = None,
     sort: str | None = None,
     max_results: int | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Execute a YouTube Analytics API query."""
     analytics = auth.build_youtube_analytics_service()
@@ -32,7 +48,7 @@ def _run_analytics_query(
         start_date, end_date = _default_date_range()
 
     params = {
-        "ids": "channel==MINE",
+        "ids": _resolve_ids(channel_id),
         "startDate": start_date,
         "endDate": end_date,
         "metrics": metrics,
@@ -69,6 +85,7 @@ def _run_analytics_query(
 def youtube_analytics_overview(
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get channel-level analytics summary.
 
@@ -78,6 +95,9 @@ def youtube_analytics_overview(
     Args:
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, analytics are fetched for the primary channel of the
+            authenticated OAuth account (``channel==MINE``).
     """
     return _run_analytics_query(
         metrics=(
@@ -87,6 +107,7 @@ def youtube_analytics_overview(
         ),
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -95,6 +116,7 @@ def youtube_analytics_top_videos(
     start_date: str | None = None,
     end_date: str | None = None,
     max_results: int = 20,
+    channel_id: str | None = None,
 ) -> dict:
     """Get top-performing videos by views.
 
@@ -104,6 +126,8 @@ def youtube_analytics_top_videos(
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
         max_results: Number of videos to return (max 200).
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     return _run_analytics_query(
         metrics=(
@@ -116,6 +140,7 @@ def youtube_analytics_top_videos(
         max_results=min(max_results, 200),
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -124,6 +149,7 @@ def youtube_analytics_top_shorts(
     start_date: str | None = None,
     end_date: str | None = None,
     max_results: int = 20,
+    channel_id: str | None = None,
 ) -> dict:
     """Get top-performing Shorts by views.
 
@@ -133,6 +159,8 @@ def youtube_analytics_top_shorts(
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
         max_results: Number of Shorts to return (max 200).
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     return _run_analytics_query(
         metrics=(
@@ -145,6 +173,7 @@ def youtube_analytics_top_shorts(
         max_results=min(max_results, 200),
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -153,6 +182,7 @@ def youtube_analytics_video_detail(
     video_id: str,
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get detailed analytics for a specific video over time.
 
@@ -162,6 +192,8 @@ def youtube_analytics_video_detail(
         video_id: YouTube video ID
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     return _run_analytics_query(
         metrics=(
@@ -174,6 +206,7 @@ def youtube_analytics_video_detail(
         sort="day",
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -182,6 +215,7 @@ def youtube_analytics_traffic_sources(
     start_date: str | None = None,
     end_date: str | None = None,
     video_id: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get traffic source breakdown — how viewers find your content.
 
@@ -191,6 +225,8 @@ def youtube_analytics_traffic_sources(
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
         video_id: Optional video ID to filter to a specific video.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     filters = f"video=={video_id}" if video_id else None
     return _run_analytics_query(
@@ -200,6 +236,7 @@ def youtube_analytics_traffic_sources(
         sort="-views",
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -207,12 +244,15 @@ def youtube_analytics_traffic_sources(
 def youtube_analytics_demographics(
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get audience demographics — age group and gender breakdown.
 
     Args:
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     return _run_analytics_query(
         metrics="viewerPercentage",
@@ -220,6 +260,7 @@ def youtube_analytics_demographics(
         sort="-viewerPercentage",
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -228,6 +269,7 @@ def youtube_analytics_geography(
     start_date: str | None = None,
     end_date: str | None = None,
     max_results: int = 25,
+    channel_id: str | None = None,
 ) -> dict:
     """Get views by country.
 
@@ -235,6 +277,8 @@ def youtube_analytics_geography(
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
         max_results: Number of countries to return.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     return _run_analytics_query(
         metrics="views,estimatedMinutesWatched",
@@ -243,6 +287,7 @@ def youtube_analytics_geography(
         max_results=max_results,
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -250,6 +295,7 @@ def youtube_analytics_geography(
 def youtube_analytics_daily(
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get daily performance metrics over time.
 
@@ -259,6 +305,8 @@ def youtube_analytics_daily(
     Args:
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     return _run_analytics_query(
         metrics=(
@@ -269,6 +317,7 @@ def youtube_analytics_daily(
         sort="day",
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
 
@@ -276,6 +325,7 @@ def youtube_analytics_daily(
 def youtube_analytics_day_of_week(
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get aggregated performance by day of week.
 
@@ -285,6 +335,8 @@ def youtube_analytics_day_of_week(
     Args:
         start_date: Start date (YYYY-MM-DD). Defaults to 90 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     if not start_date or not end_date:
         start_date, end_date = _default_date_range(days=90)
@@ -295,6 +347,7 @@ def youtube_analytics_day_of_week(
         sort="day",
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )
 
     # Aggregate by day of week
@@ -341,12 +394,15 @@ def youtube_analytics_day_of_week(
 def youtube_analytics_content_type_breakdown(
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Compare performance of Shorts vs long-form videos vs live streams.
 
     Args:
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     if not start_date or not end_date:
         start_date, end_date = _default_date_range()
@@ -365,6 +421,7 @@ def youtube_analytics_content_type_breakdown(
                 filters=filter_str,
                 start_date=start_date,
                 end_date=end_date,
+                channel_id=channel_id,
             )
             if data.get("results"):
                 results[label] = data["results"][0]
@@ -384,6 +441,7 @@ def youtube_analytics_content_type_breakdown(
 def youtube_analytics_revenue(
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get revenue breakdown.
 
@@ -393,12 +451,15 @@ def youtube_analytics_revenue(
     Args:
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     try:
         return _run_analytics_query(
             metrics="estimatedRevenue,estimatedAdRevenue,grossRevenue,estimatedRedPartnerRevenue",
             start_date=start_date,
             end_date=end_date,
+            channel_id=channel_id,
         )
     except Exception as e:
         if "Forbidden" in str(e):
@@ -414,6 +475,7 @@ def youtube_analytics_revenue_by_video(
     start_date: str | None = None,
     end_date: str | None = None,
     max_results: int = 20,
+    channel_id: str | None = None,
 ) -> dict:
     """Get revenue per video, sorted by highest revenue.
 
@@ -423,6 +485,8 @@ def youtube_analytics_revenue_by_video(
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
         max_results: Number of videos to return (max 200).
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     try:
         return _run_analytics_query(
@@ -432,6 +496,7 @@ def youtube_analytics_revenue_by_video(
             max_results=min(max_results, 200),
             start_date=start_date,
             end_date=end_date,
+            channel_id=channel_id,
         )
     except Exception as e:
         if "Forbidden" in str(e):
@@ -447,6 +512,7 @@ def youtube_analytics_retention(
     video_id: str,
     start_date: str | None = None,
     end_date: str | None = None,
+    channel_id: str | None = None,
 ) -> dict:
     """Get audience retention curve for a specific video.
 
@@ -458,6 +524,8 @@ def youtube_analytics_retention(
         video_id: YouTube video ID
         start_date: Start date (YYYY-MM-DD). Defaults to 28 days ago.
         end_date: End date (YYYY-MM-DD). Defaults to today.
+        channel_id: Optional channel ID (e.g. ``UCxxxxxxxxxxxxxxxxxxxxxx``). When
+            omitted, operates on the primary channel of the OAuth account.
     """
     return _run_analytics_query(
         metrics="audienceWatchRatio,relativeRetentionPerformance",
@@ -466,4 +534,5 @@ def youtube_analytics_retention(
         sort="elapsedVideoTimeRatio",
         start_date=start_date,
         end_date=end_date,
+        channel_id=channel_id,
     )

@@ -188,3 +188,49 @@ class TestAnalytics:
         assert len(result["results"]) == 2
         assert result["results"][0]["video"] == "short1"
         assert result["results"][0]["views"] == 10000
+
+    @patch("youtube_mcp.tools.analytics.auth")
+    def test_analytics_channel_id_forwarded(self, mock_auth):
+        """channel_id is translated to ids=channel==<id> in the API call."""
+        from youtube_mcp.tools.analytics import youtube_analytics_overview
+
+        mock_analytics = MagicMock()
+        mock_auth.build_youtube_analytics_service.return_value = mock_analytics
+        mock_analytics.reports().query().execute.return_value = {
+            "columnHeaders": [{"name": "views"}],
+            "rows": [[100]],
+        }
+
+        channel_id = "UC" + "x" * 22  # valid 24-char UC… id
+        youtube_analytics_overview(channel_id=channel_id)
+
+        call_kwargs = mock_analytics.reports().query.call_args.kwargs
+        assert call_kwargs["ids"] == f"channel=={channel_id}"
+
+    @patch("youtube_mcp.tools.analytics.auth")
+    def test_analytics_no_channel_id_uses_mine(self, mock_auth):
+        """Without channel_id the ids param defaults to channel==MINE."""
+        from youtube_mcp.tools.analytics import youtube_analytics_overview
+
+        mock_analytics = MagicMock()
+        mock_auth.build_youtube_analytics_service.return_value = mock_analytics
+        mock_analytics.reports().query().execute.return_value = {
+            "columnHeaders": [{"name": "views"}],
+            "rows": [[200]],
+        }
+
+        youtube_analytics_overview()
+
+        call_kwargs = mock_analytics.reports().query.call_args.kwargs
+        assert call_kwargs["ids"] == "channel==MINE"
+
+    def test_analytics_invalid_channel_id_raises(self):
+        """Malformed channel_id is rejected before any API call."""
+        from youtube_mcp.tools.analytics import _resolve_ids
+        import pytest
+
+        with pytest.raises(ValueError, match="Invalid channel_id"):
+            _resolve_ids("not-a-valid-id")
+
+        with pytest.raises(ValueError, match="Invalid channel_id"):
+            _resolve_ids("UC" + "x" * 10)  # too short
