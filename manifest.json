@@ -1,0 +1,103 @@
+{
+  "manifest_version": "0.2",
+  "name": "youtube-mcp-server",
+  "display_name": "YouTube",
+  "version": "0.1.0",
+  "description": "Comprehensive MCP server for the YouTube Data API v3, Analytics API, and Reporting API. Gives Claude full access to your YouTube channel: analytics, video management, comments, playlists, transcripts, SEO tools, and bulk reporting. 40 tools total.",
+  "long_description": "This server covers three YouTube APIs and is the only open-source MCP server that provides the YouTube Analytics API (channel performance, audience retention, traffic sources, demographics, revenue), the YouTube Reporting API (bulk CSV report scheduling and download), and full YouTube Data API v3 coverage including video upload, playlist management, comment read/write, SEO autocomplete, trending videos, and category discovery. It also includes client-side quota tracking with hard-fail protection.",
+  "author": {
+    "name": "pauling-ai",
+    "url": "https://github.com/pauling-ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pauling-ai/youtube-studio-mcp"
+  },
+  "homepage": "https://github.com/pauling-ai/youtube-studio-mcp",
+  "license": "MIT",
+  "keywords": ["youtube", "analytics", "video", "channel", "mcp"],
+  "icon": "icon.png",
+  "server": {
+    "type": "python",
+    "entry_point": "youtube_mcp.server:main",
+    "mcp_config": {
+      "command": "youtube-studio-mcp",
+      "args": [],
+      "env": {
+        "YOUTUBE_MCP_CLIENT_SECRET": "${user_config.client_secret_path}",
+        "YOUTUBE_MCP_CONFIG_DIR": "${user_config.config_dir}",
+        "YOUTUBE_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "user_config": {
+    "client_secret_path": {
+      "type": "file",
+      "title": "OAuth Client Secret Path",
+      "description": "Path to your Google OAuth 2.0 client_secret.json file (download from Google Cloud Console > APIs & Services > Credentials).",
+      "required": false,
+      "default": "~/.youtube-mcp/client_secret.json"
+    },
+    "config_dir": {
+      "type": "directory",
+      "title": "Config Directory",
+      "description": "Directory where OAuth tokens and config are stored. Created automatically on first auth.",
+      "required": false,
+      "default": "~/.youtube-mcp"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "YouTube API Key",
+      "description": "YouTube Data API key for public-only read operations (no OAuth required). Optional — OAuth covers all operations.",
+      "required": false,
+      "sensitive": true
+    }
+  },
+  "compatibility": {
+    "runtimes": {
+      "python": ">=3.11"
+    }
+  },
+  "tools": [
+    { "name": "youtube_auth", "description": "Initiate OAuth 2.0 authentication flow with Google" },
+    { "name": "youtube_auth_status", "description": "Check authentication status and current quota usage" },
+    { "name": "youtube_get_channel", "description": "Get channel details by ID, handle, or mine=True" },
+    { "name": "youtube_list_videos", "description": "List videos from a channel or playlist" },
+    { "name": "youtube_get_video", "description": "Get detailed video metadata and statistics" },
+    { "name": "youtube_search", "description": "Search YouTube (100 quota units per call)" },
+    { "name": "youtube_search_suggestions", "description": "Get autocomplete/SEO suggestions (no quota cost)" },
+    { "name": "youtube_trending", "description": "Get trending videos by region and category" },
+    { "name": "youtube_get_categories", "description": "List video categories for a given region" },
+    { "name": "youtube_get_transcript", "description": "Get video transcript via official API or fallback scraping" },
+    { "name": "youtube_list_captions", "description": "List caption tracks for your own videos" },
+    { "name": "youtube_analytics_overview", "description": "Channel summary: views, watch time, subscribers, likes" },
+    { "name": "youtube_analytics_top_videos", "description": "Top videos by views (excludes Shorts)" },
+    { "name": "youtube_analytics_top_shorts", "description": "Top Shorts by views" },
+    { "name": "youtube_analytics_video_detail", "description": "Daily metrics for a specific video" },
+    { "name": "youtube_analytics_traffic_sources", "description": "Traffic source breakdown for the channel" },
+    { "name": "youtube_analytics_demographics", "description": "Age and gender audience breakdown" },
+    { "name": "youtube_analytics_geography", "description": "Views broken down by country" },
+    { "name": "youtube_analytics_daily", "description": "Daily performance over a time range" },
+    { "name": "youtube_analytics_day_of_week", "description": "Average performance by day of the week" },
+    { "name": "youtube_analytics_content_type_breakdown", "description": "Shorts vs long-form vs live comparison" },
+    { "name": "youtube_analytics_revenue", "description": "Revenue breakdown (requires YouTube Partner Program)" },
+    { "name": "youtube_analytics_revenue_by_video", "description": "Per-video revenue data" },
+    { "name": "youtube_analytics_retention", "description": "Audience retention curve for a video" },
+    { "name": "youtube_upload_video", "description": "Upload a video to YouTube (1,600 quota units)" },
+    { "name": "youtube_update_video", "description": "Update video title, description, tags, or other metadata" },
+    { "name": "youtube_set_thumbnail", "description": "Upload a custom thumbnail for a video" },
+    { "name": "youtube_delete_video", "description": "Delete a video from the channel" },
+    { "name": "youtube_list_playlists", "description": "List playlists for a channel" },
+    { "name": "youtube_create_playlist", "description": "Create a new playlist" },
+    { "name": "youtube_add_to_playlist", "description": "Add a video to a playlist" },
+    { "name": "youtube_remove_from_playlist", "description": "Remove a video from a playlist" },
+    { "name": "youtube_list_comments", "description": "List comments on a video" },
+    { "name": "youtube_post_comment", "description": "Post a top-level comment on a video" },
+    { "name": "youtube_reply_to_comment", "description": "Reply to an existing comment" },
+    { "name": "youtube_reporting_list_types", "description": "List available bulk report types" },
+    { "name": "youtube_reporting_create_job", "description": "Schedule a daily bulk report job" },
+    { "name": "youtube_reporting_list_jobs", "description": "List all active reporting jobs" },
+    { "name": "youtube_reporting_list_reports", "description": "List generated reports for a job" },
+    { "name": "youtube_reporting_download", "description": "Download a report as CSV" }
+  ]
+}
