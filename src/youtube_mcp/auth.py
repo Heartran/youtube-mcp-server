@@ -286,6 +286,22 @@ class YouTubeAuth:
             remaining = self.get_authorized_channel_ids()
             self._write_default(remaining[0] if remaining else None)
 
+    def clear_all_tokens(self) -> list[str]:
+        """Delete all per-channel token files and _default.json.
+
+        Returns the list of channel IDs that were removed.
+        """
+        removed: list[str] = []
+        with self._lock:
+            if self.tokens_dir.exists():
+                for path in list(self.tokens_dir.glob("UC*.json")):
+                    removed.append(path.stem)
+                    path.unlink()
+                if self._default_path.exists():
+                    self._default_path.unlink()
+            self._credentials_cache.clear()
+        return removed
+
     # ── Legacy single-token methods (backward compat) ─────────────────────────
 
     def _load_token(self) -> Credentials | None:

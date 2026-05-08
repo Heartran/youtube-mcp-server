@@ -102,6 +102,20 @@ def remove_channel(channel_id: str) -> dict:
 
 
 @mcp.tool()
+def clear_all_channels() -> dict:
+    """Remove all authorized channels and their stored tokens.
+
+    Deletes every token file in tokens/ and clears the default. After this
+    call, analytics tools will return an auth error until add_channel is
+    run again.
+
+    Returns the list of channel IDs that were removed.
+    """
+    removed = auth.clear_all_tokens()
+    return {"removed": removed, "total_removed": len(removed)}
+
+
+@mcp.tool()
 def set_default_channel(channel_id: str) -> dict:
     """Set the default channel used by analytics tools.
 
