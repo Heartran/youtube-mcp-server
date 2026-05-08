@@ -154,6 +154,7 @@ class TestAnalytics:
         from youtube_mcp.tools.analytics import youtube_analytics_overview
 
         mock_analytics = MagicMock()
+        mock_auth.get_default_channel_id.return_value = None
         mock_auth.build_youtube_analytics_service.return_value = mock_analytics
         mock_analytics.reports().query().execute.return_value = {
             "columnHeaders": [
@@ -172,6 +173,7 @@ class TestAnalytics:
         from youtube_mcp.tools.analytics import youtube_analytics_top_shorts
 
         mock_analytics = MagicMock()
+        mock_auth.get_default_channel_id.return_value = None
         mock_auth.build_youtube_analytics_service.return_value = mock_analytics
         mock_analytics.reports().query().execute.return_value = {
             "columnHeaders": [
@@ -191,10 +193,11 @@ class TestAnalytics:
 
     @patch("youtube_mcp.tools.analytics.auth")
     def test_analytics_channel_id_forwarded(self, mock_auth):
-        """channel_id is translated to ids=channel==<id> in the API call."""
+        """Explicit channel_id is forwarded both to the service builder and to ids=."""
         from youtube_mcp.tools.analytics import youtube_analytics_overview
 
         mock_analytics = MagicMock()
+        mock_auth.get_default_channel_id.return_value = None
         mock_auth.build_youtube_analytics_service.return_value = mock_analytics
         mock_analytics.reports().query().execute.return_value = {
             "columnHeaders": [{"name": "views"}],
@@ -204,15 +207,39 @@ class TestAnalytics:
         channel_id = "UC" + "x" * 22  # valid 24-char UC… id
         youtube_analytics_overview(channel_id=channel_id)
 
+        # Service built with the right channel_id
+        mock_auth.build_youtube_analytics_service.assert_called_with(channel_id)
+        # ids param carries the channel_id
         call_kwargs = mock_analytics.reports().query.call_args.kwargs
         assert call_kwargs["ids"] == f"channel=={channel_id}"
 
     @patch("youtube_mcp.tools.analytics.auth")
+    def test_analytics_default_channel_used_when_no_arg(self, mock_auth):
+        """When no channel_id is passed, the default channel from auth is used."""
+        from youtube_mcp.tools.analytics import youtube_analytics_overview
+
+        default_cid = "UC" + "d" * 22
+        mock_analytics = MagicMock()
+        mock_auth.get_default_channel_id.return_value = default_cid
+        mock_auth.build_youtube_analytics_service.return_value = mock_analytics
+        mock_analytics.reports().query().execute.return_value = {
+            "columnHeaders": [{"name": "views"}],
+            "rows": [[300]],
+        }
+
+        youtube_analytics_overview()
+
+        mock_auth.build_youtube_analytics_service.assert_called_with(default_cid)
+        call_kwargs = mock_analytics.reports().query.call_args.kwargs
+        assert call_kwargs["ids"] == f"channel=={default_cid}"
+
+    @patch("youtube_mcp.tools.analytics.auth")
     def test_analytics_no_channel_id_uses_mine(self, mock_auth):
-        """Without channel_id the ids param defaults to channel==MINE."""
+        """When no channel_id and no default, ids falls back to channel==MINE."""
         from youtube_mcp.tools.analytics import youtube_analytics_overview
 
         mock_analytics = MagicMock()
+        mock_auth.get_default_channel_id.return_value = None  # no default configured
         mock_auth.build_youtube_analytics_service.return_value = mock_analytics
         mock_analytics.reports().query().execute.return_value = {
             "columnHeaders": [{"name": "views"}],

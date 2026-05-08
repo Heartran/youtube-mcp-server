@@ -58,6 +58,7 @@ from youtube_mcp.tools import publishing  # noqa: E402, F401
 from youtube_mcp.tools import playlists  # noqa: E402, F401
 from youtube_mcp.tools import comments  # noqa: E402, F401
 from youtube_mcp.tools import reporting  # noqa: E402, F401
+from youtube_mcp.tools import channels_mgmt  # noqa: E402, F401
 
 
 def main():

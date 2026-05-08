@@ -42,13 +42,15 @@ def _run_analytics_query(
     channel_id: str | None = None,
 ) -> dict:
     """Execute a YouTube Analytics API query."""
-    analytics = auth.build_youtube_analytics_service()
+    # Resolve channel: explicit arg → default channel → MINE fallback
+    resolved_id = channel_id or auth.get_default_channel_id()
+    analytics = auth.build_youtube_analytics_service(resolved_id)
 
     if not start_date or not end_date:
         start_date, end_date = _default_date_range()
 
     params = {
-        "ids": _resolve_ids(channel_id),
+        "ids": _resolve_ids(resolved_id),
         "startDate": start_date,
         "endDate": end_date,
         "metrics": metrics,
